@@ -289,3 +289,128 @@ class Food
         ctx.fillRect(this.position.x, this.position.y, snakeNodeSquare.x, snakeNodeSquare.y);
     }
 }
+
+class Command
+{
+    constructor()
+    {
+
+    }
+
+    Execute()
+    {
+        throw "Command.Execute() must be implemented";
+    }
+}
+
+class KeyBoardCommand extends Command
+{
+    constructor(key)
+    {
+        this.key = key;
+    }
+
+    GetKey()
+    {
+        return this.key;
+    }
+}
+	
+class KeyBoardLeftCommand extends KeyBoardCommand
+{
+    constructor(snake)
+    {
+        super("ArrowLeft");
+        this.snake = snake;
+    }
+
+    Execute()
+    {
+        this.snake.ChangeDirection(Directions.Left);
+    }
+}
+
+class KeyBoardRightCommand extends KeyBoardCommand
+{
+    constructor(snake)
+    {
+        super("ArrowRight");
+        this.snake = snake;
+    }
+
+    Execute()
+    {
+        this.snake.ChangeDirection(Directions.Right);
+    }
+}
+
+class KeyBoardUpCommand extends KeyBoardCommand
+{
+    constructor(snake)
+    {
+        super("ArrowUp");
+        this.snake = snake;
+    }
+
+    Execute()
+    {
+        this.snake.ChangeDirection(Directions.Up);
+    }
+}
+
+class KeyBoardDownCommand extends KeyBoardCommand
+{
+    constructor(snake)
+    {
+        super("ArrowDown");
+        this.snake = snake;
+    }
+
+    Execute()
+    {
+        this.snake.ChangeDirection(Directions.Down);
+    }
+}
+
+class KeyBoard
+{
+    constructor()
+    {
+        this.commands = [];
+    }
+
+    AddKeyBoardCommand(newKeyBoardCommand)
+    {
+        this.commands.push(newKeyBoardCommand);
+    }
+
+    SetKeyBoardListener()
+    {
+        window.addEventListener("keydown", CallBack_HandleInput, true);
+    }
+
+    CallBack_HandleInput(event)
+    {
+        if (event.defaultPrevented) 
+        {
+            return; // Do nothing if the event was already processed
+        }
+        
+        for(let i=0; i < this.commands.length; i++)
+        {
+            if(this.commands[i].GetKey() == event.key)
+            {
+                this.commands[i].Execute();
+                break;
+            }
+        }
+        
+        // Cancel the default action to avoid it being handled twice
+        event.preventDefault();
+    }
+
+    UnSetKeyBoardListener()
+    {
+        window.removeEventListener("keydown", CallBack_HandleInput);
+    }
+}
