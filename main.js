@@ -161,7 +161,6 @@ class iMoveable
     }
 }
 
-
 class BodyNode extends iDrawable
 {
     constructor(x, y, w, h, direction)
@@ -172,35 +171,29 @@ class BodyNode extends iDrawable
         this.node = null;
     }
 
-    AddBodyNode()
+    AddBodyNode(newNode)
     {
-        if(this.node == null)
-        {
-            let bodyNode = new BodyNode(this.x, this.y, this.w, this.h, this.direction);
-
-            // calculate the position vector behind *this body node
-            let oppositeDirection = this.direction.RotateAroundOrigin(this.direction.GetDegrees()+180);
-            let offsetVector = new Vector2D(oppositeDirection.x*snakeNodeSquare.x, oppositeDirection.y*snakeNodeSquare.y);
-            let behindNodePosition = this.position.AddVector(offsetVector);
-
-            bodyNode.position = behindNodePosition;
-
-            this.node = bodyNode;
-        }
-        else
-        {
-            this.node.AddBodyNode();
-        }
+        this.node = newNode;
     }
 
-    UpdatePosition(newPosition)
+    SetPosition(newPosition)
     {
-        if(this.node != null)
-        {
-            this.node.UpdatePosition(this.position);
-        }
-
         this.position = newPosition;
+    }
+
+    GetPosition()
+    {
+        return this.position;
+    }
+
+    SetDirection(newDirection)
+    {
+        this.direction = newDirection;
+    }
+
+    GetDirection()
+    {
+        return this.direction;
     }
 
     Draw(ctx)
@@ -210,15 +203,53 @@ class BodyNode extends iDrawable
     }
 }
 
-
+const Directions = {
+    Left: new Vector2D(-1, 0),
+    Right: new Vector2D(1, 0),
+    Up: new Vector2D(0, -1),
+    Down: new Vector2D(0, 1)
+};
 
 class Snake
 {
     constructor(x, y, w, h)
     {
+        this.direction = new Vector2D(1, 0);
+        this.velocity = new Vector2D(this.direction.x*snakeNodeSquare.x, this.direction.y*snakeNodeSquare.y); 
+        this.position = new Vector2D(x, y);
 
-        let head = new BodyNode(x, y, w, h, new Vector2D(1, 0));
-        head.AddBodyNode();
+        this.head = new BodyNode(x, y, w, h, direction);
+        AddBodyNode();
+    }
+
+    ChangeDirection(newDirection)
+    {
+        this.direction = newDirection;
+        this.velocity = new Vector2D(this.direction.x*snakeNodeSquare.x, this.direction.y*snakeNodeSquare.y);
+    }
+
+    AddBodyNode()
+    {
+        // find the last node in the Snake's body
+        let lastNode = head;
+        while(lastNode.node != null)
+        {
+            lastNode = lastNode.node;
+        }
+
+        // create the new body node
+        let bodyNode = new BodyNode(lastNode.position.x, lastNode.position.y, snakeNodeSquare.x, snakeNodeSquare.h, lastNode.direction);
+
+        // calculate the position vector behind lastNode
+        let oppositeDirection = lastNode.direction.RotateAroundOrigin(lastNode.direction.GetDegrees()+180);
+        let offsetVector = new Vector2D(oppositeDirection.x*snakeNodeSquare.x, oppositeDirection.y*snakeNodeSquare.y);
+        let behindNodePosition = lastNode.position.AddVector(offsetVector);
+
+        // Set the new body node to be behind the last node
+        bodyNode.position = behindNodePosition;
+
+        // set the last node to this newly created bodynode
+        lastNode.node = bodyNode;
     }
 
     Draw(ctx)
@@ -233,8 +264,32 @@ class Snake
 
     Move()
     {
+        // update the Snake class' position
+        this.position = this.position.AddBodyNode(this.velocity);
 
+        // these will be used to updated the snake's body node's positions
+        let newPosition = this.position;
+        let oldPosition;
+
+        // these will be used to update the snake's body node's directions
+        let newDirection = this.direction;
+        let oldDirection;
+
+        let traverseNode = head;
+        while(traverseNode != null)
+        {
+            oldPosition = traverseNode.GetPosition();
+            oldDirection = traverseNode.GetDirection();
+            
+            traverseNode.SetPosition(newPosition);
+            traverseNode.SetDirection(newDirection);
+
+            newPosition = oldPosition;
+            newDirection = oldDirection;
+
+            // traverse to next node
+            traverseNode = traverseNode.node;
+        }
     }
- 
 }
 
