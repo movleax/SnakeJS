@@ -6,24 +6,6 @@ var gameLoopInterval = setInterval(GameCycle, simSpeed);
 
 const snakeNodeSquare = new Vector2D(10, 10);
 
-/* 
-Snake:
-	Has a head node
-	Has body nodes
-	This could be a linked list!
-	
-	Has a direction and magnitude (2D vector).
-	Has a way to change its direction.
-	Has a way to detect collision with it's body nodes
-	
-	Head node moves in the direction the snake is pointed in. 
-	Snake cannot move opposite of the direction currently travelling.
-	Head node passes down its old position to the node it points to. Iteratively, this happens for all nodes.
-	
-	If a Node collides with food, create a new node if next == null.
-    If a Node collides with itself, game over. 
-*/
-
 class Vector2D
 {
     constructor(x, y)
@@ -293,3 +275,17 @@ class Snake
     }
 }
 
+class Food
+{
+    constructor(x, y, w, h)
+    {
+        this.position = new Vector2D(x, y);
+        this.cBox = new CollisionBox(x, y, w, h);
+    }
+
+    Draw(ctx)
+    {
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(this.position.x, this.position.y, snakeNodeSquare.x, snakeNodeSquare.y);
+    }
+}
