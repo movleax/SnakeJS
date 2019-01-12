@@ -1,10 +1,9 @@
+'use strict';
+
 var canvas = document.getElementById("canvas");
 var ctx = canvas.getContext("2d");
-ctx.fillRect(20, 20, 150, 100);
-
-var gameLoopInterval = setInterval(GameCycle, simSpeed);
-
-const snakeNodeSquare = new Vector2D(10, 10);
+ctx.fillStyle = '#162802';
+ctx.fillRect(0,0,canvas.width, canvas.height);
 
 class Vector2D
 {
@@ -39,31 +38,31 @@ class Vector2D
 
     GetDegrees()
     {
-        return this.degrees;
+        return this.rads * 180 / Math.PI;
     }
 
     RotateAroundOrigin(degrees)
     {
-        let newRads = (degrees  * Math.PI / 180);
+        this.rads = (degrees  * Math.PI / 180);
 
         // perform the rotation
-        let rotatedX = Math.cos(newRads) * (this.x) - Math.sin(newRads) * (this.y);
-        let rotatedY = Math.sin(newRads) * (this.x) + Math.cos(newRads) * (this.y);
+        let rotatedX = Math.round(Math.cos(this.rads) * (this.x) - Math.sin(this.rads) * (this.y));
+        let rotatedY = Math.round(Math.sin(this.rads) * (this.x) + Math.cos(this.rads) * (this.y));
     
         return new Vector2D(rotatedX, rotatedY);
     }
 
     RotateAroundPoint(point, degrees)
     {
-        let newRads = (degrees  * Math.PI / 180);
+        this.rads = (degrees  * Math.PI / 180);
 
         // perform the rotation
-        let rotatedX = Math.cos(newRads) * (this.x - point.x) - Math.sin(newRads) * (this.y - point.y) + point.x;
-        let rotatedY = Math.sin(newRads) * (this.x - point.x) + Math.cos(newRads) * (this.y - point.y) + point.y;
+        let rotatedX = Math.cos(this.rads) * (this.x - point.x) - Math.sin(this.rads) * (this.y - point.y) + point.x;
+        let rotatedY = Math.sin(this.rads) * (this.x - point.x) + Math.cos(this.rads) * (this.y - point.y) + point.y;
         
         return new Vector2D(rotatedX, rotatedY);
     }
-}
+} const snakeNodeSquare = new Vector2D(10, 10);
 
 class Rectangle
 {
@@ -119,31 +118,7 @@ class CollisionBox extends Rectangle
     }
 }
 
-class iDrawable
-{
-    constructor()
-    {
-    }
-
-    Draw(ctx)
-    {
-        ctx.font = "18px Arial";
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, 100, 100);
-        ctx.fillStyle = "black";
-        ctx.fillText("Must override iDrawable's Draw() method", 0, 0, 100);
-    }
-}
-
-class iMoveable
-{
-    constructor()
-    {
-        this.velocity;
-    }
-}
-
-class BodyNode extends iDrawable
+class BodyNode
 {
     constructor(x, y, w, h, direction)
     {
@@ -200,8 +175,9 @@ class Snake
         this.velocity = new Vector2D(this.direction.x*snakeNodeSquare.x, this.direction.y*snakeNodeSquare.y); 
         this.position = new Vector2D(x, y);
 
-        this.head = new BodyNode(x, y, w, h, direction);
-        AddBodyNode();
+        this.head = new BodyNode(x, y, w, h, this.direction);
+        this.AddBodyNode();
+        this.AddBodyNode();
     }
 
     ChangeDirection(newDirection)
@@ -213,17 +189,18 @@ class Snake
     AddBodyNode()
     {
         // find the last node in the Snake's body
-        let lastNode = head;
+        let lastNode = this.head;
         while(lastNode.node != null)
         {
             lastNode = lastNode.node;
         }
 
         // create the new body node
-        let bodyNode = new BodyNode(lastNode.position.x, lastNode.position.y, snakeNodeSquare.x, snakeNodeSquare.h, lastNode.direction);
+        let bodyNode = new BodyNode(lastNode.position.x, lastNode.position.y, snakeNodeSquare.x, snakeNodeSquare.y, lastNode.direction);
 
         // calculate the position vector behind lastNode
-        let oppositeDirection = lastNode.direction.RotateAroundOrigin(lastNode.direction.GetDegrees()+180);
+        let oppositeDirection = lastNode.direction.GetVector2D();
+        oppositeDirection = oppositeDirection.RotateAroundOrigin(lastNode.direction.GetDegrees()+180);
         let offsetVector = new Vector2D(oppositeDirection.x*snakeNodeSquare.x, oppositeDirection.y*snakeNodeSquare.y);
         let behindNodePosition = lastNode.position.AddVector(offsetVector);
 
@@ -236,7 +213,7 @@ class Snake
 
     Draw(ctx)
     {
-        let traverseNode = head;
+        let traverseNode = this.head;
         while(traverseNode != null)
         {
             traverseNode.Draw(ctx);
@@ -247,7 +224,7 @@ class Snake
     Move()
     {
         // update the Snake class' position
-        this.position = this.position.AddBodyNode(this.velocity);
+        this.position = this.position.AddVector(this.velocity);
 
         // these will be used to updated the snake's body node's positions
         let newPosition = this.position;
@@ -257,7 +234,7 @@ class Snake
         let newDirection = this.direction;
         let oldDirection;
 
-        let traverseNode = head;
+        let traverseNode = this.head;
         while(traverseNode != null)
         {
             oldPosition = traverseNode.GetPosition();
@@ -307,6 +284,7 @@ class KeyBoardCommand extends Command
 {
     constructor(key)
     {
+        super();
         this.key = key;
     }
 
@@ -386,7 +364,7 @@ class KeyBoard
 
     SetKeyBoardListener()
     {
-        window.addEventListener("keydown", CallBack_HandleInput, true);
+        window.addEventListener("keydown", (event) => { this.CallBack_HandleInput(event) }, true);
     }
 
     CallBack_HandleInput(event)
@@ -414,3 +392,131 @@ class KeyBoard
         window.removeEventListener("keydown", CallBack_HandleInput);
     }
 }
+
+class GameState
+{
+    constructor()
+    {
+        this.gameObjects = [];
+        this.keyBoard;
+
+        this.Init();
+    }
+
+    Init()
+    {
+        throw "GameState.Init() must be implemented"
+    }
+
+    GetGameObjects()
+    {
+        return this.gameObjects;
+    }
+
+    GetKeyBoard()
+    {
+        return this.keyBoard;
+    }
+
+    AddKeyBoard(newKeyBoard)
+    {
+        this.keyBoard = newKeyBoard;
+    }
+
+    AddGameObject(obj)
+    {
+        this.gameObjects.push(obj);
+    }
+}
+
+class MainGame extends GameState
+{
+    constructor()
+    {
+        super();
+    }
+
+    Init()
+    {
+        var snake = new Snake(100, 100, 10, 10);
+
+        var keyboard = new KeyBoard();
+        keyboard.AddKeyBoardCommand(new KeyBoardDownCommand(snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardUpCommand(snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardLeftCommand(snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardRightCommand(snake));
+
+        this.AddKeyBoard(keyboard);
+
+        this.AddGameObject(snake);
+    }
+}
+
+   
+class Game
+{
+    constructor()
+    {
+        this.gameObjects = [];
+        this.keyBoard;
+    }
+
+    LoadGameState(gameState)
+    {
+        if(this.keyBoard != null)
+        {
+            this.keyBoard.UnSetKeyBoardListener();
+        }
+
+        this.gameObjects = gameState.GetGameObjects();
+        this.keyBoard = gameState.GetKeyBoard();
+
+        this.keyBoard.SetKeyBoardListener();
+    }
+
+    Draw()
+    {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+        // draw background
+        ctx.fillStyle = '#162802';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        for(let i=0; i < this.gameObjects.length; i++)
+        {
+            // look for draw function before calling it
+            if(this.gameObjects[i].Draw != null)
+            {
+                this.gameObjects[i].Draw(ctx);
+            }
+        }
+    }
+
+    Logic()
+    {
+        for(let i=0; i < this.gameObjects.length; i++)
+        {
+            // look for draw function before calling it
+            if(this.gameObjects[i].Move != null)
+            {
+                this.gameObjects[i].Move();
+            }
+        }
+    }
+
+    Cycle()
+    {
+        // input is already handled as a window event listener. See this.keyBoard.SetKeyBoardListener()
+
+        this.Logic();
+
+        this.Draw();
+    }
+}
+
+var game = new Game();
+var mainGame = new MainGame();
+game.LoadGameState(mainGame);
+var gameLoopInterval = setInterval(() => {game.Cycle()}, 250);
+
+
