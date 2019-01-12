@@ -73,11 +73,9 @@ class Rectangle
         this.h = h;
     }
 
-    UpdateRectangle(x, y, w, h)
+    UpdateRectangle(x, y)
     {
         this.position.UpdateVector(x, y);
-        this.w = w;
-        this.w = h;
     }
 
     GetRectangle()
@@ -99,15 +97,15 @@ class CollisionBox extends Rectangle
         this.hasCollided = false;
     }
     
-    UpdateCollisionBox(x, y, w, h)
+    UpdateCollisionBoxPosition(x, y)
     {
-        this.UpdateRectangle(x, y, w, h);
+        this.UpdateRectangle(x, y);
     }
 
     CheckCollision(otherCollisionBox)
     {
-        if( this.position.x + this.w >= otherCollisionBox.position.x && this.position.x <= otherCollisionBox.position.x + otherCollisionBox.w
-         && this.position.y + this.y >= otherCollisionBox.position.y && this.position.y <= otherCollisionBox.position.y + otherCollisionBox.h)
+        if( this.position.x + this.w > otherCollisionBox.position.x && this.position.x < otherCollisionBox.position.x + otherCollisionBox.w
+         && this.position.y + this.h > otherCollisionBox.position.y && this.position.y < otherCollisionBox.position.y + otherCollisionBox.h)
         {
             this.hasCollided = true;
             return true;
@@ -136,6 +134,7 @@ class BodyNode
     SetPosition(newPosition)
     {
         this.position = newPosition;
+        this.cBox.UpdateCollisionBoxPosition(this.position.x, this.position.y);
     }
 
     GetPosition()
@@ -157,6 +156,11 @@ class BodyNode
     {
         ctx.fillStyle = "green";
         ctx.fillRect(this.position.x, this.position.y, snakeNodeSquare.x, snakeNodeSquare.y);
+    }
+
+    CheckCollision(otherCollisionBox)
+    {
+        return this.cBox.CheckCollision(otherCollisionBox);
     }
 }
 
@@ -249,6 +253,57 @@ class Snake
             // traverse to next node
             traverseNode = traverseNode.node;
         }
+    }
+
+    GetCboxArray()
+    {
+        let cBoxes = [];
+        let traverseNode = this.head;
+        while(traverseNode != null)
+        {
+            cBoxes.push(traverseNode.cBox);
+            traverseNode = traverseNode.node;
+        }
+
+        return cBoxes;
+    }
+
+    CheckCollisionWithSelf()
+    {
+        let cBoxes = this.GetCboxArray();
+
+        for(let i=0; i < cBoxes.length; i++)
+        {
+            for(let k=0; k < cBoxes.length; k++)
+            {
+                if(cBoxes[i] == cBoxes[k])
+                {
+                    continue;
+                }
+
+                if(cBoxes[i].CheckCollision(cBoxes[k]))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    CheckCollision(otherCollisionBox)
+    {
+        let cBoxes = this.GetCboxArray();
+
+        for(let i=0; i < cBoxes.length; i++)
+        {
+            if(cBoxes[i].CheckCollision(otherCollisionBox))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -494,12 +549,50 @@ class Game
 
     Logic()
     {
+        this.Move();
+        this.CheckCollisions();
+    }
+
+    Move()
+    {
         for(let i=0; i < this.gameObjects.length; i++)
         {
             // look for draw function before calling it
             if(this.gameObjects[i].Move != null)
             {
                 this.gameObjects[i].Move();
+            }
+        }
+    }
+
+    CheckCollisions()
+    {
+        for(let i=0; i < this.gameObjects.length; i++)
+        {
+            // check snake collision with itself
+            if(this.gameObjects[i] instanceof Snake)
+            {
+                if(this.gameObjects[i].CheckCollisionWithSelf())
+                {
+                    alert("Ran into body! Game Over");
+                }
+            }
+
+            // check all other objects
+            for(let k=0; k < this.gameObjects.length; k++)
+            {
+                if(this.gameObjects[i] == this.gameObjects[k])
+                {
+                    continue;
+                }
+
+                if(this.gameObjects[i].CheckCollision(this.gameObjects[k]))
+                {
+                    if(this.gameObjects[i] instanceof BodyNode && this.gameObjects[k] instanceof BodyNode)
+                    {
+                        
+                    }
+                }
             }
         }
     }
