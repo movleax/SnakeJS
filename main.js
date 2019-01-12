@@ -518,5 +518,3 @@ var game = new Game();
 var mainGame = new MainGame();
 game.LoadGameState(mainGame);
 var gameLoopInterval = setInterval(() => {game.Cycle()}, 250);
-
-
