@@ -315,10 +315,71 @@ class Food
         this.cBox = new CollisionBox(x, y, w, h);
     }
 
+    SetPosition(newPosition)
+    {
+        this.position = newPosition;
+        this.cBox.UpdateCollisionBoxPosition(this.position.x, this.position.y);
+    }
+
     Draw(ctx)
     {
         ctx.fillStyle = "yellow";
         ctx.fillRect(this.position.x, this.position.y, snakeNodeSquare.x, snakeNodeSquare.y);
+    }
+
+    CheckCollision(otherCollisionBox)
+    {
+        return this.cBox.CheckCollision(otherCollisionBox);
+    }
+}
+
+class FoodController
+{
+    constructor()
+    {
+        this.foodPellet;
+    }
+
+    CheckCollision(otherCollisionBox)
+    {
+        if(this.foodPellet == null)
+        {
+            return false;
+        }
+
+        return this.foodPellet.CheckCollision(otherCollisionBox);
+    }
+
+    SpawnFood(snake)
+    {
+        if(this.foodPellet == null)
+        {
+            this.foodPellet = new Food(0, 0, snakeNodeSquare.x, snakeNodeSquare.y);
+        }
+
+        let newX = Math.round((Math.random() * canvas.width - this.foodPellet.cBox.w)/10)*10;
+        let newY = Math.round((Math.random() * canvas.height - this.foodPellet.cBox.h)/10)*10;
+        let newPosition = new Vector2D(newX, newY);
+
+        this.foodPellet.SetPosition(newPosition);
+
+        while(snake.CheckCollision(this.foodPellet.cBox))
+        {
+            newX = Math.round((Math.random() * canvas.width)) - this.foodPellet.cBox.w;
+            newY = Math.round((Math.random() * canvas.height)) - this.foodPellet.cBox.h;
+            newPosition = new Vector2D(newX, newY);
+            this.foodPellet.SetPosition(newPosition);
+        }
+    }
+
+    Draw(ctx)
+    {
+        this.foodPellet.Draw(ctx);
+    }
+
+    GetCboxArray()
+    {
+        return [this.foodPellet.cBox];
     }
 }
 
@@ -495,6 +556,9 @@ class MainGame extends GameState
     {
         var snake = new Snake(100, 100, 10, 10);
 
+        var foodController = new FoodController();
+        foodController.SpawnFood(snake);
+
         var keyboard = new KeyBoard();
         keyboard.AddKeyBoardCommand(new KeyBoardDownCommand(snake));
         keyboard.AddKeyBoardCommand(new KeyBoardUpCommand(snake));
@@ -503,6 +567,7 @@ class MainGame extends GameState
 
         this.AddKeyBoard(keyboard);
 
+        this.AddGameObject(foodController);
         this.AddGameObject(snake);
     }
 }
@@ -567,6 +632,8 @@ class Game
 
     CheckCollisions()
     {
+        let cBoxes = [];
+
         for(let i=0; i < this.gameObjects.length; i++)
         {
             // check snake collision with itself
@@ -586,11 +653,17 @@ class Game
                     continue;
                 }
 
-                if(this.gameObjects[i].CheckCollision(this.gameObjects[k]))
+                cBoxes = this.gameObjects[k].GetCboxArray();
+
+                for(let h=0; h < cBoxes.length; h++)
                 {
-                    if(this.gameObjects[i] instanceof BodyNode && this.gameObjects[k] instanceof BodyNode)
+                    if(this.gameObjects[i].CheckCollision(cBoxes[h]))
                     {
-                        
+                        if(this.gameObjects[i] instanceof Snake && this.gameObjects[k] instanceof FoodController)
+                        {
+                            this.gameObjects[k].SpawnFood(this.gameObjects[i]);
+                            this.gameObjects[i].AddBodyNode();
+                        }
                     }
                 }
             }
@@ -610,4 +683,4 @@ class Game
 var game = new Game();
 var mainGame = new MainGame();
 game.LoadGameState(mainGame);
-var gameLoopInterval = setInterval(() => {game.Cycle()}, 250);
+var gameLoopInterval = setInterval(() => {game.Cycle()}, 125);
