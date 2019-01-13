@@ -43,22 +43,27 @@ class Vector2D
 
     RotateAroundOrigin(degrees)
     {
-        this.rads = (degrees  * Math.PI / 180);
+        let newRads = (degrees  * Math.PI / 180);
 
         // perform the rotation
-        let rotatedX = Math.round(Math.cos(this.rads) * (this.x) - Math.sin(this.rads) * (this.y));
-        let rotatedY = Math.round(Math.sin(this.rads) * (this.x) + Math.cos(this.rads) * (this.y));
+        let rotatedX = Math.round(Math.cos(newRads) * (this.x) - Math.sin(newRads) * (this.y));
+        let rotatedY = Math.round(Math.sin(newRads) * (this.x) + Math.cos(newRads) * (this.y));
     
         return new Vector2D(rotatedX, rotatedY);
     }
 
+    Scale(scale)
+    {
+        return new Vector2D(scale*this.x, scale*this.y);
+    }
+
     RotateAroundPoint(point, degrees)
     {
-        this.rads = (degrees  * Math.PI / 180);
+        newRads = (degrees  * Math.PI / 180);
 
         // perform the rotation
-        let rotatedX = Math.cos(this.rads) * (this.x - point.x) - Math.sin(this.rads) * (this.y - point.y) + point.x;
-        let rotatedY = Math.sin(this.rads) * (this.x - point.x) + Math.cos(this.rads) * (this.y - point.y) + point.y;
+        let rotatedX = Math.cos(newRads) * (this.x - point.x) - Math.sin(newRads) * (this.y - point.y) + point.x;
+        let rotatedY = Math.sin(newRads) * (this.x - point.x) + Math.cos(newRads) * (this.y - point.y) + point.y;
         
         return new Vector2D(rotatedX, rotatedY);
     }
@@ -204,7 +209,7 @@ class Snake
 
         // calculate the position vector behind lastNode
         let oppositeDirection = lastNode.direction.GetVector2D();
-        oppositeDirection = oppositeDirection.RotateAroundOrigin(lastNode.direction.GetDegrees()+180);
+        oppositeDirection = oppositeDirection.Scale(-1);
         let offsetVector = new Vector2D(oppositeDirection.x*snakeNodeSquare.x, oppositeDirection.y*snakeNodeSquare.y);
         let behindNodePosition = lastNode.position.AddVector(offsetVector);
 
