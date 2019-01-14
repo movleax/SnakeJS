@@ -156,6 +156,27 @@ class StartText
     }
 }
 
+class ScoreText
+{
+    constructor()
+    {
+        this.score = 0;
+    }
+
+    IncrememntScore()
+    {
+        this.score++;
+    }
+
+    Draw(ctx)
+    {
+        ctx.font = "18px Arial";
+        ctx.strokeStyle = "white";
+        ctx.textAlign = "center"; 
+        ctx.strokeText("Score: " + this.score, canvas.width/2, canvas.height/16);
+    }
+}
+
 class CollisionBox extends Rectangle
 {
     constructor(x, y, w, h)
@@ -802,6 +823,8 @@ class MainGame extends GameState
 
         this.gameOver = new GameOverText();
 
+        this.score = new ScoreText();
+
         var keyboard = new KeyBoard();
         keyboard.AddKeyBoardCommand(new KeyBoardDownCommand(this.snake));
         keyboard.AddKeyBoardCommand(new KeyBoardUpCommand(this.snake));
@@ -810,6 +833,7 @@ class MainGame extends GameState
 
         this.AddKeyBoard(keyboard);
 
+        this.AddGameObject(this.score);
         this.AddGameObject(this.foodController);
         this.AddGameObject(this.snake);
         this.AddGameObject(this.gameOver);
@@ -853,7 +877,6 @@ class MainGame extends GameState
     {
         let cBoxes = [];
 
-
         // check snake collision with itself
         if(this.snake.CheckCollisionWithSelf())
         {
@@ -893,6 +916,7 @@ class MainGame extends GameState
                         {
                             this.gameObjects[k].SpawnFood(this.gameObjects[i]);
                             this.gameObjects[i].AddBodyNode();
+                            this.score.IncrememntScore();
                         }
                     }
                 }
