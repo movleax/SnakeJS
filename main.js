@@ -67,6 +67,12 @@ class Vector2D
         
         return new Vector2D(rotatedX, rotatedY);
     }
+
+    Equals(otherVector)
+    {
+        return this.x == otherVector.x && this.y == otherVector.y;
+    }
+
 } const snakeNodeSquare = new Vector2D(10, 10);
 
 class Rectangle
@@ -91,6 +97,62 @@ class Rectangle
     GetPosition()
     {
         return this.position;
+    }
+}
+
+class GameOverText
+{
+    constructor()
+    {
+        this.display = false;
+    }
+
+    Draw(ctx)
+    {
+        if(this.display)
+        {
+            ctx.font = "50px Arial";
+            ctx.strokeStyle = "white";
+            ctx.textAlign = "center"; 
+            ctx.strokeText("Game Over", canvas.width/2, canvas.height/2);
+        }
+    }
+
+    SetGameOver(isShown)
+    {
+        this.display = isShown;
+    }
+}
+
+class TitleText
+{
+    constructor()
+    {
+
+    }
+
+    Draw(ctx)
+    {
+        ctx.font = "50px Arial";
+        ctx.strokeStyle = "white";
+        ctx.textAlign = "center"; 
+        ctx.strokeText("Snake JS", canvas.width/2, canvas.height/4);
+    }
+}
+
+class StartText
+{
+    constructor()
+    {
+
+    }
+
+    Draw(ctx)
+    {
+        ctx.font = "40px Arial";
+        ctx.strokeStyle = "white";
+        ctx.textAlign = "center"; 
+        ctx.strokeText("Press Space to Start", canvas.width/2, canvas.height - canvas.height/2);
     }
 }
 
@@ -183,6 +245,7 @@ class Snake
         this.direction = new Vector2D(1, 0);
         this.velocity = new Vector2D(this.direction.x*snakeNodeSquare.x, this.direction.y*snakeNodeSquare.y); 
         this.position = new Vector2D(x, y);
+        this.isDead = false;
 
         this.head = new BodyNode(x, y, w, h, this.direction);
         this.AddBodyNode();
@@ -230,8 +293,18 @@ class Snake
         }
     }
 
+    SetIsDead(isDead)
+    {
+        this.isDead = isDead;
+    }
+
     Move()
     {
+        if(this.isDead)
+        {
+            return;
+        }
+
         // update the Snake class' position
         this.position = this.position.AddVector(this.velocity);
 
@@ -362,8 +435,8 @@ class FoodController
             this.foodPellet = new Food(0, 0, snakeNodeSquare.x, snakeNodeSquare.y);
         }
 
-        let newX = Math.round((Math.random() * canvas.width - this.foodPellet.cBox.w)/10)*10;
-        let newY = Math.round((Math.random() * canvas.height - this.foodPellet.cBox.h)/10)*10;
+        let newX = Math.round((Math.random() * (canvas.width - this.foodPellet.cBox.w))/10)*10;
+        let newY = Math.round((Math.random() * (canvas.height - this.foodPellet.cBox.h))/10)*10;
         let newPosition = new Vector2D(newX, newY);
 
         this.foodPellet.SetPosition(newPosition);
@@ -425,6 +498,12 @@ class KeyBoardLeftCommand extends KeyBoardCommand
 
     Execute()
     {
+        // Do not change direction if it would be the opposite of where we are headed
+        if(this.snake.direction.Equals(Directions.Right))
+        {
+            return;
+        }
+
         this.snake.ChangeDirection(Directions.Left);
     }
 }
@@ -439,6 +518,12 @@ class KeyBoardRightCommand extends KeyBoardCommand
 
     Execute()
     {
+        // Do not change direction if it would be the opposite of where we are headed
+        if(this.snake.direction.Equals(Directions.Left))
+        {
+            return;
+        }
+
         this.snake.ChangeDirection(Directions.Right);
     }
 }
@@ -453,6 +538,12 @@ class KeyBoardUpCommand extends KeyBoardCommand
 
     Execute()
     {
+        // Do not change direction if it would be the opposite of where we are headed
+        if(this.snake.direction.Equals(Directions.Down))
+        {
+            return;
+        }
+
         this.snake.ChangeDirection(Directions.Up);
     }
 }
@@ -467,7 +558,27 @@ class KeyBoardDownCommand extends KeyBoardCommand
 
     Execute()
     {
+        // Do not change direction if it would be the opposite of where we are headed
+        if(this.snake.direction.Equals(Directions.Up))
+        {
+            return;
+        }
+
         this.snake.ChangeDirection(Directions.Down);
+    }
+}
+
+class KeyBoardSpaceCommand extends KeyBoardCommand
+{
+    constructor(GameState)
+    {
+        super("Space");
+        this.gameState = GameState;
+    }
+
+    Execute()
+    {
+        this.gameState.ChangeState(new MainGame());
     }
 }
 
@@ -498,7 +609,7 @@ class KeyBoard
         
         for(let i=0; i < this.commands.length; i++)
         {
-            if(this.commands[i].GetKey() == event.key)
+            if(this.commands[i].GetKey() == event.code)
             {
                 this.commands[i].Execute();
                 break;
@@ -640,15 +751,6 @@ class GameState extends iGame
         this.keyBoard;
         this.stateHasChanged = false;
         this.currentState;
-
-        this.Init();
-    }
-
-    static get mainGame(){new MainGame();}
-
-    Init()
-    {
-        throw "Init() must be implemented"
     }
 
     GetGameObjects()
@@ -692,25 +794,25 @@ class MainGame extends GameState
     constructor()
     {
         super();
-    }
 
-    Init()
-    {
-        var snake = new Snake(100, 100, 10, 10);
+        this.snake = new Snake(100, 100, 10, 10);
 
-        var foodController = new FoodController();
-        foodController.SpawnFood(snake);
+        this.foodController = new FoodController();
+        this.foodController.SpawnFood(this.snake);
+
+        this.gameOver = new GameOverText();
 
         var keyboard = new KeyBoard();
-        keyboard.AddKeyBoardCommand(new KeyBoardDownCommand(snake));
-        keyboard.AddKeyBoardCommand(new KeyBoardUpCommand(snake));
-        keyboard.AddKeyBoardCommand(new KeyBoardLeftCommand(snake));
-        keyboard.AddKeyBoardCommand(new KeyBoardRightCommand(snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardDownCommand(this.snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardUpCommand(this.snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardLeftCommand(this.snake));
+        keyboard.AddKeyBoardCommand(new KeyBoardRightCommand(this.snake));
 
         this.AddKeyBoard(keyboard);
 
-        this.AddGameObject(foodController);
-        this.AddGameObject(snake);
+        this.AddGameObject(this.foodController);
+        this.AddGameObject(this.snake);
+        this.AddGameObject(this.gameOver);
     }
 
     Draw(ctx)
@@ -751,21 +853,31 @@ class MainGame extends GameState
     {
         let cBoxes = [];
 
+
+        // check snake collision with itself
+        if(this.snake.CheckCollisionWithSelf())
+        {
+            this.gameOver.SetGameOver(true);
+            this.snake.SetIsDead(true);
+            setTimeout(() => { this.ChangeState(new MainMenu()); }, 3000);
+        }
+
+
         for(let i=0; i < this.gameObjects.length; i++)
         {
-            // check snake collision with itself
-            if(this.gameObjects[i] instanceof Snake)
+            if(this.gameObjects[i].CheckCollision == null)
             {
-                if(this.gameObjects[i].CheckCollisionWithSelf())
-                {
-                    alert("Ran into body! Game Over");
-                    this.ChangeState(new MainGame());
-                }
+                continue;
             }
 
             // check all other objects
             for(let k=0; k < this.gameObjects.length; k++)
             {
+                if(this.gameObjects[k].CheckCollision == null)
+                {
+                    continue;
+                }
+
                 if(this.gameObjects[i] == this.gameObjects[k])
                 {
                     continue;
@@ -799,9 +911,57 @@ class MainGame extends GameState
 
 }
 
+class MainMenu extends GameState
+{
+    constructor()
+    {
+        super();
+
+        this.titleText = new TitleText();
+        this.startText = new StartText();
+
+        var keyboard = new KeyBoard();
+        keyboard.AddKeyBoardCommand(new KeyBoardSpaceCommand(this));
+
+        this.AddKeyBoard(keyboard);
+
+        this.AddGameObject(this.titleText);
+        this.AddGameObject(this.startText);
+    }
+
+    Draw(ctx)
+    {
+        // draw background
+        ctx.fillStyle = '#162802';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        for(let i=0; i < this.gameObjects.length; i++)
+        {
+            // look for draw function before calling it
+            if(this.gameObjects[i].Draw != null)
+            {
+                this.gameObjects[i].Draw(ctx);
+            }
+        }
+    }
+
+    Move() { }
+
+    Logic() { }
+
+    CheckCollisions() { }
+
+    Cycle()
+    {
+        // input is already handled as a window event listener. See this.keyBoard.SetKeyBoardListener()
+        this.Draw();
+    }
+
+}
+
  
 
 var game = new Game();
-var mainGame = new MainGame();
-game.LoadGameState(mainGame);
+var mainMenu = new MainMenu();
+game.LoadGameState(mainMenu);
 var gameLoopInterval = setInterval(() => {game.Cycle()}, 125);
