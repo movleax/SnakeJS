@@ -476,6 +476,7 @@ class KeyBoard
     constructor()
     {
         this.commands = [];
+        this.callBackPtr = this.CallBack_HandleInput.bind(this);
     }
 
     AddKeyBoardCommand(newKeyBoardCommand)
@@ -485,7 +486,7 @@ class KeyBoard
 
     SetKeyBoardListener()
     {
-        window.addEventListener("keydown", (event) => { this.CallBack_HandleInput(event) }, true);
+        window.addEventListener("keydown", this.callBackPtr);
     }
 
     CallBack_HandleInput(event)
@@ -510,23 +511,144 @@ class KeyBoard
 
     UnSetKeyBoardListener()
     {
-        window.removeEventListener("keydown", CallBack_HandleInput);
+        window.removeEventListener("keydown", this.callBackPtr);
     }
 }
 
-class GameState
+class iGame
 {
     constructor()
     {
+
+    }
+
+    Draw()
+    {
+        throw "Draw() must be implemented";
+    }
+
+    Logic()
+    {
+        throw "Logic() must be implemented";
+    }
+
+    Move()
+    {
+        throw "Move() must be implemented";
+    }
+
+    CheckCollisions()
+    {
+        throw "CheckCollisions() must be implemented";
+    }
+
+    Cycle()
+    {
+        throw "Cycle() must be implemented";
+    }
+
+    CheckStateChange(gameProxy)
+    {
+        throw "CheckStateChange(gameProxy) must be implemented";
+    }
+}
+
+class Game extends iGame
+{
+    constructor()
+    {
+        super();
+        this.gameState;
+        this.gameProxy = new GameProxy(this);
+    }
+
+    LoadGameState(gameState)
+    {
+        if(gameState == null)
+        {
+            return;
+        }
+
+        // disable current state keyboard
+        if(this.gameState != null && this.gameState.GetKeyBoard() != null)
+        {
+            this.gameState.keyBoard.UnSetKeyBoardListener();
+        }
+
+        // assign to this.gameState
+        this.gameState = gameState;
+
+        // set this.gameState keyboard as active
+        this.gameState.keyBoard.SetKeyBoardListener();
+    }
+
+    Draw()
+    {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        this.gameState.Draw(ctx);
+    }
+
+    Logic()
+    {
+        this.Move();
+        this.CheckCollisions();
+        this.gameState.CheckStateChange(this.gameProxy);
+    }
+
+    Move()
+    {
+        this.gameState.Move();
+    }
+
+    CheckCollisions()
+    {
+        this.gameState.CheckCollisions();
+    }
+
+    Cycle()
+    {
+        // input is already handled as a window event listener. See this.keyBoard.SetKeyBoardListener()
+
+        this.Logic();
+
+        this.Draw();
+    }
+    
+}
+
+class GameProxy
+{
+    constructor(game)
+    {
+        this.game = game;
+    }
+
+    LoadGameState(gameState)
+    {
+        this.game.LoadGameState(gameState);
+    }
+}
+
+class GameState extends iGame
+{
+    constructor()
+    {
+        super();
+
         this.gameObjects = [];
         this.keyBoard;
+        this.stateHasChanged = false;
+        this.currentState;
 
         this.Init();
     }
 
+    static get mainGame(){new MainGame();}
+
     Init()
     {
-        throw "GameState.Init() must be implemented"
+        throw "Init() must be implemented"
     }
 
     GetGameObjects()
@@ -547,6 +669,21 @@ class GameState
     AddGameObject(obj)
     {
         this.gameObjects.push(obj);
+    }
+
+    ChangeState(newState)
+    {
+        this.stateHasChanged = true;
+        this.currentState = newState;
+    }
+
+    CheckStateChange(gameProxy)
+    {
+        if(this.stateHasChanged)
+        {
+            gameProxy.LoadGameState(this.currentState);
+            this.stateHasChanged = false;
+        }
     }
 }
 
@@ -575,34 +712,9 @@ class MainGame extends GameState
         this.AddGameObject(foodController);
         this.AddGameObject(snake);
     }
-}
 
-   
-class Game
-{
-    constructor()
+    Draw(ctx)
     {
-        this.gameObjects = [];
-        this.keyBoard;
-    }
-
-    LoadGameState(gameState)
-    {
-        if(this.keyBoard != null)
-        {
-            this.keyBoard.UnSetKeyBoardListener();
-        }
-
-        this.gameObjects = gameState.GetGameObjects();
-        this.keyBoard = gameState.GetKeyBoard();
-
-        this.keyBoard.SetKeyBoardListener();
-    }
-
-    Draw()
-    {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
         // draw background
         ctx.fillStyle = '#162802';
         ctx.fillRect(0,0,canvas.width, canvas.height);
@@ -647,6 +759,7 @@ class Game
                 if(this.gameObjects[i].CheckCollisionWithSelf())
                 {
                     alert("Ran into body! Game Over");
+                    this.ChangeState(new MainGame());
                 }
             }
 
@@ -683,7 +796,10 @@ class Game
 
         this.Draw();
     }
+
 }
+
+ 
 
 var game = new Game();
 var mainGame = new MainGame();
